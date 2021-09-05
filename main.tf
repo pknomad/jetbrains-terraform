@@ -13,11 +13,11 @@ provider "aws" {
   region = "us-east-2"
 }
 
-resource "aws_instance" "example" {
+resource "aws_instance" "jetbrains_server" {
   ami           = "ami-045b0a05944af45c1"
   instance_type = "t2.medium"
 
-  vpc_security_group_ids = [aws_security_group.jetbrains-sg.id]
+  vpc_security_group_ids = [aws_security_group.jetbrains_sg.id]
 
   user_data = <<-EOF
     #!/bin/bash
@@ -28,14 +28,6 @@ resource "aws_instance" "example" {
     chmod 700 /home/jetbrains-user/.ssh
     chmod 600 /home/jetbrains-user/.ssh/authorized_keys
     echo "jetbrains-user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jetbrains-user
-
-    yum update -y
-    yum install java-1.8.0-openjdk-devel
-
-    curl -o /tmp/licensing-server-installer.zip https://download.jetbrains.com/lcsrv/license-server-installer.zip
-    unzip license-server-installer.zip -d /home/jetbrains-user/fls
-    ./bin/license-server.sh start
-
   EOF
 
   tags = {
@@ -43,7 +35,7 @@ resource "aws_instance" "example" {
   }
 }
 
-resource "aws_security_group" "jetbrains-sg" {
+resource "aws_security_group" "jetbrains_sg" {
   name = " jetbrains-security-group"
 
   ingress {
@@ -61,36 +53,24 @@ resource "aws_security_group" "jetbrains-sg" {
     cidr_blocks = ["0.0.0.0/0"
     ]
   }
-
-  ingress {
-    from_port = 80
-    to_port   = 80
-    protocol  = "tcp"
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     cidr_blocks = ["0.0.0.0/0"
     ]
   }
+}
 
-  ingress {
-    from_port = 8300
-    to_port   = 8300
-    protocol  = "tcp"
-    cidr_blocks = ["0.0.0.0/0"
-    ]
-  }
+resource "aws_route53_record" "fls" {
+  zone_id = "Z01042843KU2X1UBFH8NL"
+  name    = "fls.silphco.net"
+  type    = "A"
+  ttl     = "60"
+  records = [aws_instance.jetbrains_server.public_ip]
+}
 
-  ingress {
-    from_port = 8000
-    to_port   = 8000
-    protocol  = "tcp"
-    cidr_blocks = ["0.0.0.0/0"
-    ]
-  }
-
-  ingress {
-    from_port = 8443
-    to_port   = 8443
-    protocol  = "tcp"
-    cidr_blocks = ["0.0.0.0/0"
-    ]
-  }
+output "public_ip" {
+  value       = aws_instance.jetbrains_server.public_ip
+  description = "The public IP address of the website"
 }

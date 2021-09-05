@@ -1,0 +1,12 @@
+[Unit]
+Description=JetBrains FLS
+Requires=network.target
+After=network.target
+[Service]
+Type=forking
+ExecStart=/opt/jetbrains/bin/license-server.sh start
+ExecStop=/opt/jetbrains/bin/license-server.sh stop
+ExecReload=/opt/jetbrains/bin/license-server.sh restart
+PIDFile=/opt/jetbrains/logs/license-server.pid
+[Install]
+WantedBy=default.target
