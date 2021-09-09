@@ -13,6 +13,21 @@ provider "aws" {
   region = "us-east-2"
 }
 
+variable "http_port" {
+  type    = number
+  default = 8080
+}
+
+variable "ssh_port" {
+  type    = number
+  default = 22
+}
+
+variable "fqdn" {
+  type    = string
+  default = "fls.silphco.net"
+}
+
 resource "aws_instance" "jetbrains_server" {
   ami           = "ami-045b0a05944af45c1"
   instance_type = "t2.medium"
@@ -29,6 +44,21 @@ resource "aws_instance" "jetbrains_server" {
     chmod 600 /home/jetbrains-user/.ssh/authorized_keys
     echo "jetbrains-user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jetbrains-user
   EOF
+  /*
+    provisioner "remote-exec" {
+    inline = ["sudo dnf -y install python"]
+
+    connection {
+      type        = "ssh"
+      user        = "centos"
+      private_key = "${file(var.ssh_key_private)}"
+    }
+  }
+
+  provisioner "local-exec" {
+    command = "ansible-playbook -u centos -i '${self.public_ip},' --private-key ${var.ssh_key_private} fls.yml" 
+  }
+  */
 
   tags = {
     Name = "jetbrains-server"
@@ -39,16 +69,16 @@ resource "aws_security_group" "jetbrains_sg" {
   name = " jetbrains-security-group"
 
   ingress {
-    from_port = 8080
-    to_port   = 8080
+    from_port = var.http_port
+    to_port   = var.http_port
     protocol  = "tcp"
     cidr_blocks = [
     "0.0.0.0/0"]
   }
 
   ingress {
-    from_port = 22
-    to_port   = 22
+    from_port = var.ssh_port
+    to_port   = var.ssh_port
     protocol  = "tcp"
     cidr_blocks = ["0.0.0.0/0"
     ]
@@ -63,14 +93,14 @@ resource "aws_security_group" "jetbrains_sg" {
 }
 
 resource "aws_route53_record" "fls" {
-  zone_id = "Z01042843KU2X1UBFH8NL"
-  name    = "fls.silphco.net"
+  zone_id = "Z01042843KU2X1UBFH8NL" /* Need to pull the data from AWS via API to do this via variables */
+  name    = var.fqdn
   type    = "A"
   ttl     = "60"
   records = [aws_instance.jetbrains_server.public_ip]
 }
 
 output "public_ip" {
-  value       = aws_instance.jetbrains_server.public_ip
+  value       = [aws_instance.jetbrains_server.public_ip]
   description = "The public IP address of the website"
 }

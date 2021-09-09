@@ -7,9 +7,9 @@
     - vars.yml
     
   tasks:
-  - name: Set Hostname to fls.silphco.net
+  - name: Set Hostname to FQDN
     hostname: 
-      name: fls.silphco.net
+      name: "{{ fqdn }}"
       use: systemd
 
   - name: Update CentOS 8
@@ -22,6 +22,7 @@
       name: chrony
       state: present
 
+  # Needed for unzipping Jetbrains FLS file
   - name: Install Unzip
     yum:
       name: unzip
@@ -50,10 +51,10 @@
 
   - name: Unzip Jetbrains FLS Zip file
     unarchive:
-        src: "/tmp/license-server-installer.zip"
-        dest: "{{ jetbrains_dir }}"
-        remote_src: true
-        creates: "{{ jetbrains_dir }}/bin/license-server.sh" 
+      src: "/tmp/license-server-installer.zip"
+      dest: "{{ jetbrains_dir }}"
+      remote_src: true
+      creates: "{{ jetbrains_dir }}/bin/license-server.sh" 
 
   - name: Copy FLS Service Daemon File 
     copy:
